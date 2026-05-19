@@ -159,8 +159,8 @@ async fn main() -> anyhow::Result<()> {
         return extras::acp::serve(cli, cfg, context).await;
     }
 
-    let sandbox = sandbox::Sandbox::new(cli.resolve_sandbox(&cfg))
-        .with_shell(&cli.resolve_shell(&cfg));
+    let sandbox =
+        sandbox::Sandbox::new(cli.resolve_sandbox(&cfg)).with_shell(&cli.resolve_shell(&cfg));
     let (permission, ask_tx, ask_rx) = build_permission_checker(&cli, &cfg);
 
     if let Some(perm) = &permission {
@@ -198,12 +198,10 @@ async fn main() -> anyhow::Result<()> {
             session.add_message(MessageRole::User, &msg);
             session.add_message(MessageRole::Assistant, &response);
             session::storage::save_session(&session)?;
-            let _ = session::chat_history::append_entry(
-                &session::chat_history::ChatHistoryEntry {
-                    content: msg,
-                    timestamp: session.updated_at.clone(),
-                },
-            );
+            let _ = session::chat_history::append_entry(&session::chat_history::ChatHistoryEntry {
+                content: msg,
+                timestamp: session.updated_at.clone(),
+            });
         }
     } else {
         #[cfg(feature = "loop")]
@@ -314,12 +312,15 @@ fn print_config(cli: &cli::Cli, cfg: &config::Config) {
         cfg.default_permission_mode.as_deref().unwrap_or("standard")
     };
 
-    print_section("Directories", &[
-        ("config", config_dir.display().to_string()),
-        ("data", data_dir.display().to_string()),
-        ("sessions", sessions_dir.display().to_string()),
-        ("config file", config_file.display().to_string()),
-    ]);
+    print_section(
+        "Directories",
+        &[
+            ("config", config_dir.display().to_string()),
+            ("data", data_dir.display().to_string()),
+            ("sessions", sessions_dir.display().to_string()),
+            ("config file", config_file.display().to_string()),
+        ],
+    );
 
     let mut model_entries = vec![
         ("provider", provider.to_string()),
@@ -330,21 +331,27 @@ fn print_config(cli: &cli::Cli, cfg: &config::Config) {
     }
     print_section("Model", &model_entries);
 
-    print_section("Limits", &[
-        ("max-tokens", max_tokens.to_string()),
-        ("max-agent-turns", max_agent_turns.to_string()),
-        ("context-window", context_window.to_string()),
-        ("reserve-tokens", cfg.resolve_reserve_tokens().to_string()),
-    ]);
+    print_section(
+        "Limits",
+        &[
+            ("max-tokens", max_tokens.to_string()),
+            ("max-agent-turns", max_agent_turns.to_string()),
+            ("context-window", context_window.to_string()),
+            ("reserve-tokens", cfg.resolve_reserve_tokens().to_string()),
+        ],
+    );
 
-    print_section("Behavior", &[
-        ("permission-mode", mode.to_string()),
-        ("shell", shell.to_string()),
-        ("sandbox", sandbox.to_string()),
-        ("no-tools", no_tools.to_string()),
-        ("no-context-files", no_context_files.to_string()),
-        ("compact", compact.to_string()),
-    ]);
+    print_section(
+        "Behavior",
+        &[
+            ("permission-mode", mode.to_string()),
+            ("shell", shell.to_string()),
+            ("sandbox", sandbox.to_string()),
+            ("no-tools", no_tools.to_string()),
+            ("no-context-files", no_context_files.to_string()),
+            ("compact", compact.to_string()),
+        ],
+    );
 }
 
 #[cfg(feature = "loop")]

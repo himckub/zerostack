@@ -145,7 +145,11 @@ impl InputEditor {
             }
             Some(Picker::Command(p)) => {
                 let (handled, replacement) = handle_command_picker_key(
-                    &mut self.buffer, &mut self.cursor, &self.prompt_names, p, key,
+                    &mut self.buffer,
+                    &mut self.cursor,
+                    &self.prompt_names,
+                    p,
+                    key,
                 );
                 if let Some(new_picker) = replacement {
                     self.picker = Some(new_picker);
@@ -210,16 +214,16 @@ impl InputEditor {
                 self.history_pos = None;
 
                 // Check if we should activate prompt picker after typing /prompt
-                if self.picker.is_none() || !self.picker.as_ref().is_some_and(|p| p.active()) {
-                    if self.buffer.starts_with("/prompt ") {
-                        let after_prefix: String = self.buffer.chars().skip("/prompt ".len()).collect();
-                        if !after_prefix.is_empty() && c != ' ' {
-                            let query_len = after_prefix.len();
-                            if query_len == 1 {
-                                self.start_prompt_picker();
-                                if let Some(Picker::Prompt(ref mut pp)) = self.picker {
-                                    pp.char_input(c);
-                                }
+                if (self.picker.is_none() || !self.picker.as_ref().is_some_and(|p| p.active()))
+                    && self.buffer.starts_with("/prompt ")
+                {
+                    let after_prefix: String = self.buffer.chars().skip("/prompt ".len()).collect();
+                    if !after_prefix.is_empty() && c != ' ' {
+                        let query_len = after_prefix.len();
+                        if query_len == 1 {
+                            self.start_prompt_picker();
+                            if let Some(Picker::Prompt(ref mut pp)) = self.picker {
+                                pp.char_input(c);
                             }
                         }
                     }
@@ -391,10 +395,7 @@ fn handle_file_picker_key(
             let at_pos = buffer.rfind('@');
             if let Some(at) = at_pos {
                 let before: String = buffer.chars().take(at).collect();
-                let after: String = buffer
-                    .chars()
-                    .skip(at + 1 + picker.query.len())
-                    .collect();
+                let after: String = buffer.chars().skip(at + 1 + picker.query.len()).collect();
                 *buffer = format!("{}{}", before, after).into();
                 *cursor = at;
             }
@@ -412,7 +413,7 @@ fn handle_command_picker_key(
     picker: &mut CommandPicker,
     key: KeyEvent,
 ) -> (bool, Option<Picker>) {
-    let result = match key.code {
+    match key.code {
         KeyCode::Char(c)
             if c == '\x08' || (c == 'h' && key.modifiers.contains(KeyModifiers::CONTROL)) =>
         {
@@ -514,8 +515,7 @@ fn handle_command_picker_key(
             (true, None)
         }
         _ => (false, None),
-    };
-    result
+    }
 }
 
 fn handle_prompt_picker_key(

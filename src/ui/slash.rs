@@ -758,39 +758,28 @@ pub async fn handle_slash(
                 renderer.write_line(&format!("failed to regenerate prompts: {}", e), C_ERROR)?;
             }
         },
-        "/history" => {
-            match crate::session::chat_history::load_history() {
-                Ok(entries) => {
-                    if entries.is_empty() {
-                        renderer.write_line("no chat history", C_AGENT)?;
-                    } else {
-                        renderer.write_line(
-                            &format!("global chat history ({} entries):", entries.len()),
-                            C_AGENT,
-                        )?;
-                        for entry in entries.iter().rev().take(10).rev() {
-                            let preview: String = entry.content.chars().take(80).collect();
-                            renderer.write_line(
-                                &format!(
-                                    "  {}",
-                                    preview
-                                ),
-                                C_RESULT,
-                            )?;
-                        }
-                        if entries.len() > 10 {
-                            renderer.write_line("  ... (showing last 10)", C_AGENT)?;
-                        }
+        "/history" => match crate::session::chat_history::load_history() {
+            Ok(entries) => {
+                if entries.is_empty() {
+                    renderer.write_line("no chat history", C_AGENT)?;
+                } else {
+                    renderer.write_line(
+                        &format!("global chat history ({} entries):", entries.len()),
+                        C_AGENT,
+                    )?;
+                    for entry in entries.iter().rev().take(10).rev() {
+                        let preview: String = entry.content.chars().take(80).collect();
+                        renderer.write_line(&format!("  {}", preview), C_RESULT)?;
+                    }
+                    if entries.len() > 10 {
+                        renderer.write_line("  ... (showing last 10)", C_AGENT)?;
                     }
                 }
-                Err(e) => {
-                    renderer.write_line(
-                        &format!("failed to load chat history: {}", e),
-                        C_ERROR,
-                    )?;
-                }
             }
-        }
+            Err(e) => {
+                renderer.write_line(&format!("failed to load chat history: {}", e), C_ERROR)?;
+            }
+        },
         "/quit" => {
             *is_running = false;
             return Err(std::io::Error::new(std::io::ErrorKind::Interrupted, "quit").into());
@@ -841,10 +830,7 @@ pub async fn handle_slash(
                 "  /reasoning             toggle LLM reasoning ability",
                 C_RESULT,
             )?;
-            renderer.write_line(
-                "  /thinking              alias for /reasoning",
-                C_RESULT,
-            )?;
+            renderer.write_line("  /thinking              alias for /reasoning", C_RESULT)?;
             renderer.write_line(
                 "  /mode                  show/change security mode",
                 C_RESULT,
@@ -912,7 +898,10 @@ pub async fn handle_slash(
                     C_RESULT,
                 );
             }
-            renderer.write_line("  /history               show global chat history", C_RESULT)?;
+            renderer.write_line(
+                "  /history               show global chat history",
+                C_RESULT,
+            )?;
             renderer.write_line("  /quit                  exit zerostack", C_RESULT)?;
             renderer.write_line("  /help                  show this message", C_RESULT)?;
             renderer.write_line("", C_AGENT)?;

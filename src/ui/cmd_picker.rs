@@ -135,6 +135,7 @@ impl CommandPicker {
 
     /// For testing: set matches directly.
     #[cfg(test)]
+    #[allow(dead_code)]
     pub fn test_set_matches(&mut self, items: Vec<&'static str>) {
         self.matches = items;
         self.selected = 0;
@@ -311,6 +312,7 @@ impl PromptPicker {
     }
 
     #[cfg(test)]
+    #[allow(dead_code)]
     pub fn test_set_items(&mut self, items: Vec<String>) {
         self.items = items;
     }

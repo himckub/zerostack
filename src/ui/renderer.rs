@@ -525,14 +525,19 @@ impl Renderer {
         let prompt_width = prompt.chars().count();
 
         // Clear input area
-        let visible_line_count = if need_scroll { available_rows } else { line_count };
+        let visible_line_count = if need_scroll {
+            available_rows
+        } else {
+            line_count
+        };
         for r in 0..visible_line_count {
             let row = (rows.saturating_sub(2) - visible_line_count as u16 + 1) + r as u16;
             let _ = stdout.execute(MoveTo(0, row));
             let _ = write!(stdout, "{}", " ".repeat(cols as usize));
         }
 
-        let (cursor_line, cursor_col) = crate::ui::input::cursor_to_line_col(input_line, cursor_pos);
+        let (cursor_line, cursor_col) =
+            crate::ui::input::cursor_to_line_col(input_line, cursor_pos);
 
         // Compute horizontal scroll for the cursor line
         let visible_width = cols.saturating_sub(prompt_width as u16) as usize;
@@ -551,7 +556,12 @@ impl Renderer {
             self.input_scroll_offset = 0;
         }
 
-        for i in first_visible..line_count {
+        for (i, line) in lines
+            .iter()
+            .enumerate()
+            .take(line_count)
+            .skip(first_visible)
+        {
             let render_row = (rows.saturating_sub(2) - visible_line_count as u16 + 1)
                 + (i - first_visible) as u16;
             let _ = stdout.execute(MoveTo(0, render_row));
@@ -564,7 +574,6 @@ impl Renderer {
                 let _ = write!(stdout, "{}", " ".repeat(prompt_width));
             }
 
-            let line = lines[i];
             let line_chars: Vec<char> = line.chars().collect();
             let h_offset = if i == cursor_line { h_scroll } else { 0 };
             let display: String = line_chars
@@ -579,7 +588,11 @@ impl Renderer {
         let _ = stdout.execute(MoveTo(0, status_row));
         let _ = write!(stdout, "{}", " ".repeat(cols as usize));
         let _ = stdout.execute(MoveTo(0, status_row));
-        let _ = write!(stdout, "{}", SetForegroundColor(self.color(Color::DarkGrey)));
+        let _ = write!(
+            stdout,
+            "{}",
+            SetForegroundColor(self.color(Color::DarkGrey))
+        );
         let status_display = if self.scroll_offset > 0 {
             format!("-- SCROLL -- {}", status)
         } else {
@@ -591,8 +604,8 @@ impl Renderer {
 
         // Cursor
         let cursor_render_idx = cursor_line.saturating_sub(first_visible);
-        let cursor_row = (rows.saturating_sub(2) - visible_line_count as u16 + 1)
-            + cursor_render_idx as u16;
+        let cursor_row =
+            (rows.saturating_sub(2) - visible_line_count as u16 + 1) + cursor_render_idx as u16;
         let cursor_x = (prompt_width + cursor_col.saturating_sub(h_scroll)) as u16;
         let _ = stdout.execute(MoveTo(cursor_x, cursor_row));
         let _ = stdout.flush();

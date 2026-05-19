@@ -167,8 +167,13 @@ pub async fn run_interactive(
 
     render_session(&mut renderer, session, cli, cfg, context)?;
     refresh_display(
-        &mut renderer, &input, session, false,
-        None, context.current_prompt_name.as_deref(), perm_mode().as_deref(),
+        &mut renderer,
+        &input,
+        session,
+        false,
+        None,
+        context.current_prompt_name.as_deref(),
+        perm_mode().as_deref(),
     )?;
 
     let (user_tx, mut user_rx) = mpsc::channel::<UserEvent>(64);
