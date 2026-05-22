@@ -2,7 +2,7 @@ use std::io::{self, Write};
 
 use compact_str::CompactString;
 use crossterm::ExecutableCommand;
-use crossterm::cursor::MoveTo;
+use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::style::{Attribute, Color, ResetColor, SetAttribute, SetBackgroundColor, SetForegroundColor};
 use crossterm::terminal::{Clear, ClearType, ScrollUp};
 
@@ -252,6 +252,7 @@ impl Renderer {
         let visible = rows.saturating_sub(2) as usize;
         let total = self.buffer.len();
         let mut stdout = io::stdout();
+        write!(stdout, "{}", Hide)?;
 
         let start = if self.scroll_offset == 0 {
             total.saturating_sub(visible)
@@ -659,6 +660,7 @@ impl Renderer {
             (rows.saturating_sub(2) - visible_line_count as u16 + 1) + cursor_render_idx as u16;
         let cursor_x = (prompt_width + cursor_col.saturating_sub(h_scroll)) as u16;
         stdout.execute(MoveTo(cursor_x, cursor_row))?;
+        write!(stdout, "{}", Show)?;
         stdout.flush()?;
         Ok(())
     }
