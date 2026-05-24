@@ -2,7 +2,7 @@ use compact_str::CompactString;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::io::Write;
 
-use crate::ui::cmd_picker::{CommandPicker, ModelsPicker, PromptPicker};
+use crate::ui::cmd_picker::{CommandPicker, ModelsPicker, PromptPicker, ThemePicker};
 use crate::ui::picker::FilePicker;
 
 fn prev_char_boundary(s: &str, idx: usize) -> usize {
@@ -81,6 +81,7 @@ pub enum Picker {
     Command(CommandPicker),
     Prompt(PromptPicker),
     Models(ModelsPicker),
+    Theme(ThemePicker),
 }
 
 impl Picker {
@@ -90,6 +91,7 @@ impl Picker {
             Picker::Command(p) => p.active,
             Picker::Prompt(p) => p.active,
             Picker::Models(p) => p.active,
+            Picker::Theme(p) => p.active,
         }
     }
 
@@ -99,6 +101,7 @@ impl Picker {
             Picker::Command(p) => p.set_monochrome(monochrome),
             Picker::Prompt(p) => p.set_monochrome(monochrome),
             Picker::Models(p) => p.set_monochrome(monochrome),
+            Picker::Theme(p) => p.set_monochrome(monochrome),
         }
     }
 
@@ -108,6 +111,7 @@ impl Picker {
             Picker::Command(p) => p.draw(),
             Picker::Prompt(p) => p.draw(),
             Picker::Models(p) => p.draw(),
+            Picker::Theme(p) => p.draw(),
         }
     }
 }
@@ -123,6 +127,7 @@ pub struct InputEditor {
     pub picker: Option<Picker>,
     monochrome: bool,
     prompt_names: Vec<String>,
+    theme_names: Vec<String>,
     quick_model_names: Vec<String>,
     editor: Option<String>,
     kill_ring: Vec<CompactString>,
@@ -141,6 +146,7 @@ impl InputEditor {
             picker: None,
             monochrome: false,
             prompt_names: Vec::new(),
+            theme_names: Vec::new(),
             quick_model_names: Vec::new(),
             editor: None,
             kill_ring: Vec::with_capacity(MAX_KILL_RING),
@@ -166,6 +172,10 @@ impl InputEditor {
 
     pub fn set_prompt_names(&mut self, names: Vec<String>) {
         self.prompt_names = names;
+    }
+
+    pub fn set_theme_names(&mut self, names: Vec<String>) {
+        self.theme_names = names;
     }
 
     pub fn load_global_history(&mut self) {
@@ -212,6 +222,16 @@ impl InputEditor {
         self.picker = Some(Picker::Prompt(picker));
     }
 
+    pub fn start_theme_picker(&mut self) {
+        let mut picker = ThemePicker::new();
+        picker.set_monochrome(self.monochrome);
+        if !self.theme_names.is_empty() {
+            picker.set_items(self.theme_names.clone());
+        }
+        picker.activate();
+        self.picker = Some(Picker::Theme(picker));
+    }
+
     pub fn handle_picker_key(&mut self, key: KeyEvent) -> bool {
         let handled = match self.picker.as_mut() {
             Some(Picker::File(p)) => {
@@ -222,6 +242,7 @@ impl InputEditor {
                     &mut self.buffer,
                     &mut self.cursor,
                     &self.prompt_names,
+                    &self.theme_names,
                     &self.quick_model_names,
                     p,
                     key,
@@ -290,7 +311,7 @@ impl InputEditor {
         let _ = crossterm::terminal::enable_raw_mode();
 
         if let Ok(content) = std::fs::read_to_string(&tmp) {
-            self.buffer = CompactString::new(content.trim_end().to_string());
+            self.buffer = CompactString::new(content.trim_end());
             self.cursor = self.buffer.len();
         }
 
@@ -479,7 +500,8 @@ impl InputEditor {
                     return None;
                 }
                 let text = self.buffer.clone();
-                if !text.is_empty() {
+                let is_blank = text.trim().is_empty();
+                if !is_blank {
                     self.history.push(text.clone());
                 }
                 self.history_pos = None;
@@ -540,6 +562,20 @@ impl InputEditor {
                             self.start_models_picker();
                             if let Some(Picker::Models(ref mut mp)) = self.picker {
                                 mp.char_input(c);
+                            }
+                        }
+                    }
+                }
+                if (self.picker.is_none() || !self.picker.as_ref().is_some_and(|p| p.active()))
+                    && self.buffer.starts_with("/theme ")
+                {
+                    let after_prefix: String = self.buffer.chars().skip("/theme ".len()).collect();
+                    if !after_prefix.is_empty() && c != ' ' {
+                        let query_len = after_prefix.len();
+                        if query_len == 1 {
+                            self.start_theme_picker();
+                            if let Some(Picker::Theme(ref mut tp)) = self.picker {
+                                tp.char_input(c);
                             }
                         }
                     }
@@ -1357,6 +1393,7 @@ fn handle_command_picker_key(
     buffer: &mut CompactString,
     cursor: &mut usize,
     prompt_names: &[String],
+    theme_names: &[String],
     quick_model_names: &[String],
     picker: &mut CommandPicker,
     key: KeyEvent,
@@ -1452,6 +1489,13 @@ fn handle_command_picker_key(
                     mp.set_items(quick_model_names.to_vec());
                     mp.activate();
                     return (true, Some(Picker::Models(mp)));
+                }
+                if selected == "/theme" && !theme_names.is_empty() {
+                    picker.deactivate();
+                    let mut tp = ThemePicker::new();
+                    tp.set_items(theme_names.to_vec());
+                    tp.activate();
+                    return (true, Some(Picker::Theme(tp)));
                 }
             }
             picker.deactivate();
@@ -1567,6 +1611,115 @@ fn handle_models_picker_key(
         }
         KeyCode::Esc => {
             let prefix = "/models ";
+            let prefix_len = prefix.len();
+            let after_offset = prefix_len + picker.query.len();
+            if buffer.len() >= after_offset {
+                let before: String = buffer.chars().take(prefix_len).collect();
+                let after: String = buffer.chars().skip(after_offset).collect();
+                *buffer = format!("{}{}", before, after).into();
+                *cursor = prefix_len;
+            }
+            picker.deactivate();
+            true
+        }
+        _ => false,
+    }
+}
+
+fn handle_theme_picker_key(
+    buffer: &mut CompactString,
+    cursor: &mut usize,
+    picker: &mut ThemePicker,
+    key: KeyEvent,
+) -> bool {
+    match key.code {
+        KeyCode::Char(c)
+            if c == '\x08' || (c == 'h' && key.modifiers.contains(KeyModifiers::CONTROL)) =>
+        {
+            if picker.cursor > 0 {
+                picker.backspace();
+                *cursor = prev_char_boundary(buffer, *cursor);
+                buffer.remove(*cursor);
+            } else {
+                let prefix = "/theme ";
+                let prefix_len = prefix.len();
+                let after_offset = prefix_len + picker.query.len();
+                if buffer.len() >= after_offset {
+                    let before: String = buffer.chars().take(prefix_len).collect();
+                    let after: String = buffer.chars().skip(after_offset).collect();
+                    *buffer = format!("{}{}", before, after).into();
+                    *cursor = prefix_len;
+                }
+                picker.deactivate();
+            }
+            true
+        }
+        KeyCode::Char(c) => {
+            picker.char_input(c);
+            let insert_pos = "/theme ".len() + picker.cursor.saturating_sub(1);
+            buffer.insert(insert_pos, c);
+            *cursor += c.len_utf8();
+            true
+        }
+        KeyCode::Backspace => {
+            if picker.cursor > 0 {
+                picker.backspace();
+                let prefix = "/theme ";
+                let prefix_len = prefix.len();
+                let remove_pos = prefix_len + picker.cursor;
+                if remove_pos < buffer.len() {
+                    buffer.remove(remove_pos);
+                }
+                *cursor = prev_char_boundary(buffer, *cursor);
+                true
+            } else {
+                let prefix = "/theme ";
+                let prefix_len = prefix.len();
+                let after_offset = prefix_len + picker.query.len();
+                if buffer.len() >= after_offset {
+                    let before: String = buffer.chars().take(prefix_len).collect();
+                    let after: String = buffer.chars().skip(after_offset).collect();
+                    *buffer = format!("{}{}", before, after).into();
+                    *cursor = prefix_len;
+                }
+                picker.deactivate();
+                true
+            }
+        }
+        KeyCode::Tab => {
+            if key
+                .modifiers
+                .contains(crossterm::event::KeyModifiers::SHIFT)
+            {
+                picker.select_prev();
+            } else {
+                picker.select_next();
+            }
+            true
+        }
+        KeyCode::Up => {
+            picker.select_prev();
+            true
+        }
+        KeyCode::Down => {
+            picker.select_next();
+            true
+        }
+        KeyCode::Enter => {
+            if let Some(name) = picker.selected_name() {
+                let prefix = "/theme ";
+                let prefix_len = prefix.len();
+                let after_offset = prefix_len + picker.query.len();
+                let before: String = buffer.chars().take(prefix_len).collect();
+                let after: String = buffer.chars().skip(after_offset).collect();
+                *buffer = format!("{}{}{}", before, name, after).into();
+                *cursor = prefix_len + name.len();
+            }
+            picker.deactivate();
+            true
+        }
+        KeyCode::Esc => {
+            let prefix = "/theme ";
             let prefix_len = prefix.len();
             let after_offset = prefix_len + picker.query.len();
             if buffer.len() >= after_offset {

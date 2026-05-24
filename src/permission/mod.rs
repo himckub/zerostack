@@ -34,6 +34,27 @@ pub struct PermissionConfig {
     pub write_todo_list: Option<ToolPerm>,
     pub external_directory: Option<HashMap<String, Action>>,
     pub doom_loop: Option<Action>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allow_entries: Option<HashMap<String, Vec<String>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ask_entries: Option<HashMap<String, Vec<String>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deny_entries: Option<HashMap<String, Vec<String>>>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct PermissionConfigs {
+    pub glob: PermissionConfig,
+    pub regex: PermissionConfig,
+}
+
+impl From<PermissionConfig> for PermissionConfigs {
+    fn from(glob: PermissionConfig) -> Self {
+        PermissionConfigs {
+            glob,
+            regex: PermissionConfig::default(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

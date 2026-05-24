@@ -40,6 +40,16 @@ impl StatusLine {
             String::new()
         };
 
+        let token_detail = if session.total_input_tokens > 0 || session.total_output_tokens > 0 {
+            format!(
+                " i:{} o:{}",
+                fmt_tokens(session.total_input_tokens),
+                fmt_tokens(session.total_output_tokens),
+            )
+        } else {
+            String::new()
+        };
+
         let compact_badge = if session.compactions.is_empty() {
             String::new()
         } else {
@@ -62,7 +72,7 @@ impl StatusLine {
         };
 
         format!(
-            "{}{} | {}{} | {}/{} ({}%) | {}msgs | {}{}{}{}",
+            "{}{} | {}{} | {}/{} ({}%) | {}msgs{}{} | {}{}{}",
             dir,
             cost_str,
             session.model,
@@ -71,8 +81,9 @@ impl StatusLine {
             fmt_tokens(ctx),
             pct,
             session.messages.len(),
-            state,
+            token_detail,
             compact_badge,
+            state,
             prompt_badge,
             perm_badge,
         )

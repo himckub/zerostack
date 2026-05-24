@@ -15,7 +15,9 @@ pub struct AgentRunner {
 
 pub fn convert_history(session: &Session) -> Vec<Message> {
     let (summary, first_kept) = session.compacted_context();
-    let mut messages = Vec::new();
+    let remaining = session.messages.len().saturating_sub(first_kept);
+    let extra = if summary.is_some() { 1 } else { 0 };
+    let mut messages = Vec::with_capacity(remaining + extra);
 
     if let Some(summary) = summary {
         messages.push(Message::system(format!(
@@ -41,7 +43,7 @@ where
     M::StreamingResponse: Send + Sync + Unpin + Clone + 'static,
     P: rig::agent::PromptHook<M> + 'static,
 {
-    let (event_tx, event_rx) = mpsc::channel::<AgentEvent>(256);
+    let (event_tx, event_rx) = mpsc::channel::<AgentEvent>(32);
 
     tokio::spawn(async move {
         let mut stream = agent.stream_chat(prompt, history).await;
@@ -93,12 +95,12 @@ where
                 }
                 Ok(MultiTurnStreamItem::FinalResponse(res)) => {
                     let response_text = res.response();
-                    let estimated_tokens = Session::estimate_tokens(response_text);
+                    let usage = res.usage();
                     let _ = event_tx
                         .send(AgentEvent::Done {
                             response: CompactString::from(response_text),
-                            tokens: estimated_tokens,
-                            cost: 0.0,
+                            input_tokens: usage.input_tokens,
+                            output_tokens: usage.output_tokens,
                         })
                         .await;
                     break;

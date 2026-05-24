@@ -1,25 +1,51 @@
 use regex::Regex;
+use std::sync::OnceLock;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Pattern {
-    regex: Regex,
-    #[allow(dead_code)]
+    regex: OnceLock<Regex>,
     pub original: String,
+    is_regex: bool,
 }
 
 impl Pattern {
     pub fn new(pattern: &str) -> Self {
-        let expanded = expand_home(pattern);
-        let regex_str = glob_to_regex(&expanded);
-        let regex = Regex::new(&regex_str).unwrap_or_else(|_| Regex::new("^$").unwrap());
         Pattern {
-            regex,
+            regex: OnceLock::new(),
             original: pattern.to_string(),
+            is_regex: false,
+        }
+    }
+
+    pub fn new_regex(pattern: &str) -> Self {
+        Pattern {
+            regex: OnceLock::new(),
+            original: pattern.to_string(),
+            is_regex: true,
         }
     }
 
     pub fn matches(&self, input: &str) -> bool {
-        self.regex.is_match(input)
+        let regex = self.regex.get_or_init(|| {
+            let expanded = expand_home(&self.original);
+            let regex_str = if self.is_regex {
+                expanded
+            } else {
+                glob_to_regex(&expanded)
+            };
+            Regex::new(&regex_str).unwrap_or_else(|_| Regex::new("^$").unwrap())
+        });
+        regex.is_match(input)
+    }
+}
+
+impl Clone for Pattern {
+    fn clone(&self) -> Self {
+        Pattern {
+            regex: OnceLock::new(),
+            original: self.original.clone(),
+            is_regex: self.is_regex,
+        }
     }
 }
 
