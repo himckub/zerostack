@@ -180,7 +180,35 @@ impl Config {
 }
 
 fn resolve_config_path() -> PathBuf {
-    let dir = storage::config_path();
+    // ZS_CONFIG_DIR env var takes highest priority
+    if let Some(dir) = std::env::var_os("ZS_CONFIG_DIR") {
+        let dir = PathBuf::from(dir);
+        let toml = dir.join("config.toml");
+        let json = dir.join("config.json");
+        if toml.exists() {
+            return toml;
+        }
+        if json.exists() {
+            return json;
+        }
+        return toml;
+    }
+
+    // XDG config dir (~/.config/zerostack on Linux) takes second priority
+    if let Some(config_dir) = dirs::config_dir() {
+        let dir = config_dir.join("zerostack");
+        let toml = dir.join("config.toml");
+        let json = dir.join("config.json");
+        if toml.exists() {
+            return toml;
+        }
+        if json.exists() {
+            return json;
+        }
+    }
+
+    // Data dir (~/.local/share/zerostack) is the final fallback
+    let dir = storage::data_dir();
     let toml = dir.join("config.toml");
     let json = dir.join("config.json");
     if toml.exists() {

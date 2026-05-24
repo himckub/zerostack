@@ -1,14 +1,16 @@
 # Configuration
 
-zerostack reads an optional config file from its data folder. It supports both
-JSON and TOML formats. The file is resolved by priority:
+zerostack reads an optional config file. It supports both JSON and TOML
+formats. The file is resolved by priority:
 
 - If `ZS_CONFIG_DIR` is set: `$ZS_CONFIG_DIR/config.toml` or `$ZS_CONFIG_DIR/config.json`
-- Otherwise: if `ZS_DATA_DIR` is set: `$ZS_DATA_DIR/config.toml` or `$ZS_DATA_DIR/config.json`
+- Otherwise: `~/.config/zerostack/config.toml` or `~/.config/zerostack/config.json`
 - Otherwise: `~/.local/share/zerostack/config.toml` or `~/.local/share/zerostack/config.json`
 
-TOML is checked first; if `config.toml` does not exist but `config.json` does,
-the JSON file is used. If neither exists, a default `config.toml` is created.
+If a `config.toml` exists at a higher priority, it is used. If neither exists
+at any priority, a default `config.toml` is created in the lowest-priority
+directory (`~/.local/share/zerostack/`). On macOS the XDG config path above
+resolves to `~/Library/Application Support/zerostack/`.
 
 Prompts and themes are loaded from the same data directory:
 
@@ -143,10 +145,11 @@ Accepted top-level keys:
 | `max_text_file_size`      | integer | Maximum allowed file size in bytes for read/write tool operations. Default: `1048576` (1 MB).                                                                               |
 | `compact_enabled`         | boolean | Enable automatic conversation compaction. Default: `true`.                                                                                                                  |
 | `custom_providers`        | object  | Map of provider aliases to `{ "provider_type", "base_url", "api_key_env", "api_style", "headers", "danger_accept_invalid_certs", "timeout_secs" }`. `provider_type` must resolve to a built-in provider type; `api_key_env` is optional. For OpenAI providers, `api_style` selects `"responses"` or `"completions"`, `headers` sets custom HTTP headers (values support `${ENV_VAR}` expansion), and `timeout_secs` overrides the HTTP timeout. `danger_accept_invalid_certs` disables TLS verification. See the OpenAI API styles section below. |
-| `permission`              | object  | Permission rules; see the permission config notes below.                                                                                                                    |
-| `permission-allow`        | object  | Map of tool names to lists of regex patterns to allow. Works alongside the `permission` field. See below.                                                                   |
-| `permission-ask`          | object  | Map of tool names to lists of regex patterns to prompt on. Works alongside the `permission` field. See below.                                                               |
-| `permission-deny`         | object  | Map of tool names to lists of regex patterns to deny. Works alongside the `permission` field. See below.                                                                    |
+| `permission`              | object  | Permission rules using glob patterns; see the permission config notes below.                                |
+| `permission-regex`        | object  | Same structure as `permission` but patterns are interpreted as regex instead of glob.                       |
+| `permission-allow`        | object  | Map of tool names to lists of glob patterns to allow. Works alongside the `permission` field. See below.    |
+| `permission-ask`          | object  | Map of tool names to lists of glob patterns to prompt on. Works alongside the `permission` field. See below.|
+| `permission-deny`         | object  | Map of tool names to lists of glob patterns to deny. Works alongside the `permission` field. See below.     |
 | `restrictive`             | boolean | Select restrictive permission mode. Overridden by `accept_all`/`yolo` if those are also true.                                                                               |
 | `accept_all`              | boolean | Select accept mode, equivalent to `--accept-all`. Overridden by `yolo` if true.                                                                                             |
 | `yolo`                    | boolean | Select yolo mode, auto-approving all operations.                                                                                                                            |
@@ -232,18 +235,27 @@ Example:
 ```
 
 Permission actions are lowercase strings: `allow`, `ask`, or `deny`. Each tool
-rule can be a single action or an object mapping glob-like patterns to actions.
-Supported permission tool keys are `bash`, `read`, `write`, `edit`, `grep`,
-`find_files`, `list_dir`, and `write_todo_list`. MCP-backed tools are
-checked under `mcp_tool:{server_name}:{tool_name}`. Use `"*"` for the
-default action, `external_directory` for absolute-path rules outside the
-working directory, and `doom_loop` for repeated identical tool calls
-(default: `ask`). If `bash` is omitted, zerostack installs its built-in
-safe bash allow/deny rules.
+rule can be a single action or an object mapping patterns to actions. Supported
+permission tool keys are `bash`, `read`, `write`, `edit`, `grep`, `find_files`,
+`list_dir`, and `write_todo_list`. MCP-backed tools are checked under
+`mcp_tool:{server_name}:{tool_name}`. Use `"*"` for the default action,
+`external_directory` for absolute-path rules outside the working directory, and
+`doom_loop` for repeated identical tool calls (default: `ask`). If `bash` is
+omitted, zerostack installs its built-in safe bash allow/deny rules.
+
+There are two config fields for controlling permissions by pattern:
+
+- **`permission`** — patterns are treated as globs (e.g. `**/*.rs`, `src/**`).
+- **`permission-regex`** — same structure as `permission`, but patterns are
+  treated as regular expressions (e.g. `.*\.rs$`, `^src/`). Regex patterns are
+  unanchored — use `^` and `$` to match the full input.
+
+Both fields can be used together; rules from both are merged. If both define a
+default action (`"*"`), the glob default takes precedence.
 
 As a TOML-friendly alternative to the nested `permission` object, you can use
 `permission-allow`, `permission-ask`, and `permission-deny` at the top level.
-Each is a map from tool name to a list of regex patterns. These work side by
+Each is a map from tool name to a list of glob patterns. These work side by
 side with the `permission` field and are especially convenient in TOML configs:
 
 ```toml
@@ -263,6 +275,24 @@ In JSON:
   },
   "permission-deny": {
     "write": ["/etc/**", "/usr/**"]
+  }
+}
+```
+
+A `permission-regex` example in JSON:
+
+```json
+{
+  "permission-regex": {
+    "*": "ask",
+    "read": {
+      "\\.md$": "allow",
+      "\\.rs$": "ask"
+    },
+    "bash": {
+      "^cargo (test|check|build)$": "allow",
+      "^rm ": "deny"
+    }
   }
 }
 ```
@@ -327,8 +357,9 @@ zerostack prefers `config.toml` over `config.json` when both exist. If neither
 file exists, a default `config.toml` is created automatically.
 
 TOML is especially well suited for zerostack's permission rules and structured
-settings. Hyphenated keys such as `permission-allow`, `permission-ask`, and
-`permission-deny` are idiomatic in TOML and avoid deeply nested tables:
+settings. Hyphenated keys such as `permission-regex`, `permission-allow`,
+`permission-ask`, and `permission-deny` are idiomatic in TOML and avoid deeply
+nested tables:
 
 ```toml
 permission-allow = { read = ["src/**", "tests/**"] }
