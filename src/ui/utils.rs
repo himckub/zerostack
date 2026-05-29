@@ -108,7 +108,7 @@ pub(crate) fn suggest_pattern(tool: &str, input: &str) -> String {
             if parent.is_empty() {
                 "**".to_string()
             } else {
-                format!("{}/*", parent)
+                format!("{}/**/*", parent)
             }
         }
         "grep" | "find_files" => {
