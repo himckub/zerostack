@@ -12,8 +12,18 @@ pub type PermCheck = Arc<Mutex<PermissionChecker>>;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CheckResult {
     Allowed,
+    AllowedWithCoaching(String),
     Ask,
     Denied(String),
+}
+
+impl CheckResult {
+    pub fn allowed_with_coaching(tool: &str, _input: &str, count: usize) -> Self {
+        CheckResult::AllowedWithCoaching(format!(
+            "⚡ Coaching: You've called {tool} on the same input {count} times in a row. \
+             This looks like a loop — try a different approach.",
+        ))
+    }
 }
 
 pub struct PermissionChecker {
@@ -245,6 +255,10 @@ impl PermissionChecker {
         if action != Action::Deny {
             self.track_doom_loop(tool, input);
             if self.is_doom_loop(tool, input) {
+                if action == Action::Allow {
+                    let count = self.count_doom_loop(tool, input);
+                    return CheckResult::allowed_with_coaching(tool, input, count);
+                }
                 match self.doom_loop_action {
                     Action::Deny => {
                         return CheckResult::Denied(
@@ -343,6 +357,10 @@ impl PermissionChecker {
         if action != Action::Deny {
             self.track_doom_loop(tool, &expanded);
             if self.is_doom_loop(tool, &expanded) {
+                if action == Action::Allow {
+                    let count = self.count_doom_loop(tool, &expanded);
+                    return CheckResult::allowed_with_coaching(tool, &expanded, count);
+                }
                 match self.doom_loop_action {
                     Action::Deny => {
                         return CheckResult::Denied(
@@ -453,12 +471,14 @@ impl PermissionChecker {
     }
 
     fn is_doom_loop(&self, tool: &str, input: &str) -> bool {
-        let count = self
-            .recent_calls
+        self.count_doom_loop(tool, input) >= 3
+    }
+
+    fn count_doom_loop(&self, tool: &str, input: &str) -> usize {
+        self.recent_calls
             .iter()
             .filter(|(t, i)| t == tool && i == input)
-            .count();
-        count >= 3
+            .count()
     }
 }
 

@@ -544,7 +544,7 @@ impl Tool for EditTool {
 
     async fn call(&self, args: EditArgs) -> Result<String, ToolError> {
         let path = crate::fs::expand_tilde(&args.path);
-        check_perm_path(&self.permission, &self.ask_tx, "edit", &path).await?;
+        let coaching = check_perm_path(&self.permission, &self.ask_tx, "edit", &path).await?;
 
         let bytes = tokio::fs::read(&path).await?;
         let has_crlf = bytes.windows(2).any(|w| w == b"\r\n");
@@ -593,6 +593,9 @@ impl Tool for EditTool {
         let mut result = format!("Applied {} edit(s) to {}", edit_count, path);
         for note in &notes {
             result.push_str(&format!("\n  Note: {}", note));
+        }
+        if let Some(msg) = coaching {
+            result = format!("{}\n\n{}", msg, result);
         }
 
         Ok(result)

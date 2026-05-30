@@ -98,8 +98,11 @@ impl Tool for BashTool {
     }
 
     async fn call(&self, args: BashArgs) -> Result<String, ToolError> {
+        let mut coaching: Option<String> = None;
         for cmd in split_bash_commands(&args.command) {
-            check_perm(&self.permission, &self.ask_tx, "bash", &cmd).await?;
+            if let Some(msg) = check_perm(&self.permission, &self.ask_tx, "bash", &cmd).await? {
+                coaching = Some(msg);
+            }
         }
 
         let output = if let Some(secs) = args.timeout {
@@ -129,6 +132,9 @@ impl Tool for BashTool {
         }
         if exit_code != 0 {
             result.push_str(&format!("\nExit code: {}", exit_code));
+        }
+        if let Some(msg) = coaching {
+            result = format!("{}\n\n{}", msg, result);
         }
         Ok(result)
     }

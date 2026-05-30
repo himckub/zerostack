@@ -40,7 +40,7 @@ Before writing code, commit to a clear aesthetic direction:
 1. **Explore existing frontend** — check for design systems, component libraries, CSS frameworks.
 2. **Ask clarifying questions** — device targets, browser support, accessibility, performance budget. One at a time.
 3. **Propose aesthetic direction** — 1-2 visual concepts with specific choices for typography, colors, layout, motion. Get approval.
-4. **Implement with TDD** — write tests for rendering, interactions, responsiveness. Limit each edit to ~50 lines.
+4. **Implement** — build the UI. Limit each edit to ~50 lines.
 5. **Verify** — test at all breakpoints, keyboard-only, screen reader. Run existing tests and linters.
 
 ## What Not To Do

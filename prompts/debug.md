@@ -30,7 +30,7 @@ NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 3. If confirmed, proceed to Phase 4. If disproven, return to Phase 2.
 
 ### Phase 4: Implement the Fix
-1. Write a failing test that reproduces the bug.
+1. Add a unit test that reproduces the bug.
 2. Implement the minimal fix addressing the root cause.
 3. Verify the test passes and run the full suite.
 4. If the fix reveals a design flaw, flag it — do not silently refactor.

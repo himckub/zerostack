@@ -194,7 +194,11 @@ fn doom_loop_triggers_after_three_repeated_calls() {
     checker.check("bash", "ls");
     checker.check("bash", "ls");
     let result = checker.check("bash", "ls");
-    assert!(matches!(result, CheckResult::Ask));
+    assert!(
+        matches!(result, CheckResult::AllowedWithCoaching(_)),
+        "expected AllowedWithCoaching from doom loop in Standard, got {:?}",
+        result,
+    );
 }
 
 #[test]
@@ -1054,12 +1058,14 @@ fn guarded_allows_internal_path_read() {
 #[test]
 fn doom_loop_triggers_in_guarded() {
     let mut checker = make_checker(SecurityMode::Guarded);
+    // "echo test" matches echo ** allow rule, so action is Allow.
+    // Doom loop should coach instead of asking.
     checker.check("bash", "echo test");
     checker.check("bash", "echo test");
     let result = checker.check("bash", "echo test");
     assert!(
-        matches!(result, CheckResult::Ask),
-        "expected Ask from doom loop in Guarded, got {:?}",
+        matches!(result, CheckResult::AllowedWithCoaching(_)),
+        "expected AllowedWithCoaching from doom loop in Guarded, got {:?}",
         result,
     );
 }
@@ -1074,6 +1080,27 @@ fn doom_loop_still_asks_for_read_tool_in_restrictive() {
     assert!(
         matches!(result, CheckResult::Ask),
         "expected Ask from doom loop in Restrictive, got {:?}",
+        result,
+    );
+}
+
+#[test]
+fn doom_loop_path_coaches_in_standard_auto_allow() {
+    let mut checker = make_checker(SecurityMode::Standard);
+    // In Standard, path tools within CWD are auto-allowed.
+    // Doom loop should coach instead of asking.
+    assert!(matches!(
+        checker.check_path("edit", "src/main.rs"),
+        CheckResult::Allowed,
+    ));
+    assert!(matches!(
+        checker.check_path("edit", "src/main.rs"),
+        CheckResult::Allowed,
+    ));
+    let result = checker.check_path("edit", "src/main.rs");
+    assert!(
+        matches!(result, CheckResult::AllowedWithCoaching(_)),
+        "expected AllowedWithCoaching for path doom loop in Standard, got {:?}",
         result,
     );
 }
@@ -1141,18 +1168,22 @@ fn yolo_deny_rules_for_mcp_become_ask() {
 }
 
 // --- permission=None equivalent (dangerously-skip-permissions) ---
-// Test that when permission is None, check_perm returns Ok(())
+// Test that when permission is None, check_perm returns Ok(None)
 // This is tested via check_perm in tools/mod.rs, but we verify the checker
 // itself would be bypassed by testing with PermissionChecker not created.
 
 #[tokio::test]
 async fn check_perm_skipped_when_permission_is_none() {
-    // When permission is None, tools/mod.rs check_perm returns Ok(()) immediately.
+    // When permission is None, tools/mod.rs check_perm returns Ok(None) immediately.
     // This test verifies the logic path: None means no checks run.
     let perm: Option<std::sync::Arc<std::sync::Mutex<PermissionChecker>>> = None;
     let ask_tx: Option<crate::permission::ask::AskSender> = None;
     let result = crate::agent::tools::check_perm(&perm, &ask_tx, "bash", "rm -rf /").await;
     assert!(result.is_ok(), "expected Ok when permission is None");
+    assert!(
+        result.unwrap().is_none(),
+        "expected None coaching when permission is None"
+    );
 }
 
 #[tokio::test]
@@ -1161,6 +1192,10 @@ async fn check_perm_path_skipped_when_permission_is_none() {
     let ask_tx: Option<crate::permission::ask::AskSender> = None;
     let result = crate::agent::tools::check_perm_path(&perm, &ask_tx, "write", "/etc/passwd").await;
     assert!(result.is_ok(), "expected Ok when permission is None");
+    assert!(
+        result.unwrap().is_none(),
+        "expected None coaching when permission is None"
+    );
 }
 
 // --- MCP deny in Guarded mode ---

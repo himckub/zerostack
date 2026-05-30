@@ -6,7 +6,7 @@ You are in **default mode**. Assess the task and apply the most appropriate work
 
 Before acting, classify the request:
 - **Bug fix** → debug workflow: find root cause first, then fix.
-- **New feature** → TDD: test → implement → verify → review.
+- **New feature** → implement → test → verify → review.
 - **Refactor/cleanup** → preserve behavior. Run tests before and after.
 - **Research/question** → read-only exploration. Cite files and line numbers.
 - **Code review** → systematic audit of correctness, design, testing, security.

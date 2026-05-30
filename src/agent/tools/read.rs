@@ -73,7 +73,7 @@ impl Tool for ReadTool {
 
     async fn call(&self, args: ReadArgs) -> Result<String, ToolError> {
         let path = crate::fs::expand_tilde(&args.path);
-        check_perm_path(&self.permission, &self.ask_tx, "read", &path).await?;
+        let coaching = check_perm_path(&self.permission, &self.ask_tx, "read", &path).await?;
 
         let metadata = tokio::fs::metadata(&path).await?;
         let file_size = metadata.len();
@@ -149,6 +149,11 @@ impl Tool for ReadTool {
                     excerpt
                 )
             }
+        };
+
+        let info = match coaching {
+            Some(msg) => format!("{}\n\n{}", msg, info),
+            None => info,
         };
 
         Ok(info)
