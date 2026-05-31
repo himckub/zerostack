@@ -11,11 +11,12 @@ mod status;
 mod terminal;
 pub(crate) mod utils;
 
-use std::io;
+use std::io::{self, Write};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+use crossterm::ExecutableCommand;
 use crossterm::event;
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind};
 use crossterm::style::Color;
@@ -465,6 +466,42 @@ pub async fn run_interactive(
                                 let _ = h.join();
                             }
                             input.open_in_editor();
+                            running = Arc::new(AtomicBool::new(true));
+                            let (new_tx, new_rx) = mpsc::channel(64);
+                            user_tx = new_tx;
+                            user_rx = new_rx;
+                            event_handle = Some(spawn_event_thread(user_tx.clone(), running.clone()));
+                            refresh_display(&mut renderer, &input, session, is_running, loop_label.as_deref(), context.current_prompt_name.as_deref(), perm_mode().as_deref())?;
+                            continue;
+                        }
+
+                        if key.code == KeyCode::Char('h') && key.modifiers.contains(KeyModifiers::CONTROL) {
+                            if std::process::Command::new("lazygit")
+                                .arg("--version")
+                                .output()
+                                .is_err()
+                            {
+                                renderer.write_line(
+                                    "warning: lazygit not found — install it (https://github.com/jesseduffield/lazygit)",
+                                    C_ERROR,
+                                )?;
+                                refresh_display(&mut renderer, &input, session, is_running, loop_label.as_deref(), context.current_prompt_name.as_deref(), perm_mode().as_deref())?;
+                                continue;
+                            }
+                            if let Some(h) = event_handle.take() {
+                                running.store(false, Ordering::Relaxed);
+                                let _ = h.join();
+                            }
+                            let _ = crossterm::terminal::disable_raw_mode();
+                            let mut stdout = std::io::stdout();
+                            let _ = stdout.execute(crossterm::event::DisableMouseCapture);
+                            let _ = stdout.execute(crossterm::terminal::LeaveAlternateScreen);
+                            let _ = stdout.flush();
+                            let _ = std::process::Command::new("lazygit").status();
+                            let _ = stdout.execute(crossterm::terminal::EnterAlternateScreen);
+                            let _ = stdout.execute(crossterm::terminal::Clear(crossterm::terminal::ClearType::All));
+                            let _ = stdout.execute(crossterm::event::EnableMouseCapture);
+                            let _ = crossterm::terminal::enable_raw_mode();
                             running = Arc::new(AtomicBool::new(true));
                             let (new_tx, new_rx) = mpsc::channel(64);
                             user_tx = new_tx;
