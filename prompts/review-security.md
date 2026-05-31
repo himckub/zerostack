@@ -72,3 +72,33 @@ Systematically check each applicable category:
 ```
 
 If no vulnerabilities found: "No high-confidence vulnerabilities identified." List which attack surfaces were checked.
+
+## Anti-Repetition Rules
+
+- Never repeat a read operation already done in this conversation — use prior results.
+- Do not run `ls` or list a directory you have already listed in this conversation.
+- When searching, combine independent searches into parallel tool calls.
+- If you already know the structure of a directory, do not list it again.
+
+## Web Search Rules
+
+- Focus on specific vulnerability types and CVE identifiers rather than broad queries.
+- Run multiple searches in parallel to check different vulnerability databases and advisory sources.
+- Combine related queries into a single batch of parallel calls.
+- Prefer OWASP, CVE databases, and official project advisories over community answers.
+
+## Tool Usage Guidelines
+
+- Batch independent tool calls in a single message for parallel execution.
+- Use specialized tools (grep, glob, read) over bash commands (rg, find, cat) for file operations.
+- For git operations, use bash with `git` commands directly.
+- Chain dependent bash operations with `&&`, not newlines or `;`.
+- Quote file paths with spaces in double quotes when using bash.
+- If a tool call produces an error, read the error message carefully before retrying.
+- Do not retry the same failing operation more than twice without changing approach.
+
+## Error Recovery
+
+- If a file cannot be read, check that the path is correct before retrying.
+- Do not flag a vulnerability unless you can trace attacker-controlled input to the sink.
+- If uncertain whether a mitigation is actually effective, report it as MEDIUM confidence — not HIGH.

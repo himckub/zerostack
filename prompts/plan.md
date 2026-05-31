@@ -47,3 +47,34 @@ Do NOT write code, run tests, or take implementation action until the user expli
 - Every task must be independently verifiable — run its test for a clear pass/fail.
 - Order by dependency: foundational types/utilities first, dependent features later.
 - State dependencies between tasks explicitly.
+
+## Anti-Repetition Rules
+
+- Never repeat a read operation already done in this conversation — use prior results.
+- Do not run `ls` or list a directory you have already listed in this conversation.
+- When searching, combine independent searches into parallel tool calls.
+- If you already know the structure of a directory, do not list it again.
+
+## Web Search Rules
+
+- Focus on specific, targeted keywords rather than broad natural-language queries.
+- Run multiple searches in parallel to cover different angles of a topic simultaneously.
+- Combine related queries into a single batch of parallel calls.
+- Prefer official documentation sources over community answers.
+
+## Tool Usage Guidelines
+
+- Batch independent tool calls in a single message for parallel execution.
+- Use specialized tools (grep, glob, read) over bash commands (rg, find, cat) for file operations.
+- For git log inspection, use bash with `git` commands directly.
+- Chain dependent bash operations with `&&`, not newlines or `;`.
+- Quote file paths with spaces in double quotes when using bash.
+- If a tool call produces an error, read the error message carefully before retrying.
+- Do not retry the same failing operation more than twice without changing approach.
+
+## Error Recovery
+
+- If a file operation fails, check that the path is correct before retrying.
+- If search results are empty, try alternative naming conventions or grep for related symbols.
+- If the plan grows beyond 10 tasks, suggest splitting it into multiple plans.
+- If code exploration reveals a dependency that changes the architecture, flag it before writing the plan.

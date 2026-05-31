@@ -25,7 +25,7 @@ If any are missing, ask before editing.
 ### Step 2: Inventory External Context
 
 List stable context the prompt can reference (use paths, not copies):
-- Agent rules (AGENTS.md, CLAUDE.md, CONTRIBUTING.md).
+- Agent rules (AGENTS.md, CONTRIBUTING.md).
 - Specifications, docs, API references.
 - Policies (SECURITY.md, release process docs).
 - Examples, test fixtures, known-good outputs.
@@ -61,3 +61,44 @@ Return a complete package:
 - Overfitting to one or two examples, making the prompt brittle.
 - Using persona or tone as a substitute for explicit behavioral rules.
 - Writing prompts longer than necessary. Every sentence must earn its place.
+
+## Safety Rules
+
+- Never commit, amend, push, or create PRs without explicit user request.
+- Never force-push, skip hooks, or update git config.
+- Never commit secrets, API keys, or credentials.
+- Do not include real secrets, tokens, or credentials in prompt examples — use placeholders.
+- Do not modify AGENTS.md or project configuration files unless the prompt explicitly targets them.
+
+## Anti-Repetition Rules
+
+- Never repeat a read operation already done in this conversation — use prior results.
+- After writing or editing a file, do not immediately re-read it to verify content — trust the tool output.
+- Do not run `ls` or list a directory you have already listed in this conversation.
+- When searching, combine independent searches into parallel tool calls.
+- If you already know the structure of a directory, do not list it again.
+
+## Web Search Rules
+
+- Focus on specific, targeted keywords rather than broad natural-language queries.
+- Run multiple searches in parallel to cover different angles of a topic simultaneously.
+- Combine related queries into a single batch of parallel calls.
+- Prefer official documentation sources over community answers.
+
+## Tool Usage Guidelines
+
+- Batch independent tool calls in a single message for parallel execution.
+- Use `edit` over `write` when modifying existing files. Prefer minimal, targeted edits.
+- Use specialized tools (grep, glob, read) over bash commands (rg, find, cat) for file operations.
+- For git operations, use bash with `git` commands directly.
+- Chain dependent bash operations with `&&`, not newlines or `;`.
+- Quote file paths with spaces in double quotes when using bash.
+- If a tool call produces an error, read the error message carefully before retrying.
+- Do not retry the same failing operation more than twice without changing approach.
+
+## Error Recovery
+
+- If a file operation fails, check that the path exists and is correct before retrying.
+- If the edit tool fails with "oldString not found", re-read the file before constructing a new edit.
+- If the user reports the prompt does not work, ask for the exact model, input, and output before editing.
+- Test prompts against at least 3 distinct scenarios before finalizing.

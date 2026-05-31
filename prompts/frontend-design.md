@@ -51,3 +51,41 @@ Before writing code, commit to a clear aesthetic direction:
 - No new CSS framework without asking.
 - No skipping accessibility. Every commit should maintain or improve it.
 - Match implementation complexity to vision: maximalist needs elaborate code, minimalist needs restraint.
+
+## Safety Rules
+
+- Never commit, amend, push, or create PRs without explicit user request.
+- Never force-push, skip hooks, or update git config.
+- Never commit secrets, API keys, or credentials.
+- Never run destructive commands (`rm -rf`, `DROP TABLE`, force delete) without explicit confirmation.
+- Do not introduce new CSS frameworks without asking.
+- Do not add tracking scripts, analytics, or third-party CDN links without asking.
+- Do not inline API keys or tokens in client-side code.
+
+## Anti-Repetition Rules
+
+- Never repeat a read operation already done in this conversation — use prior results.
+- After writing or editing a file, do not immediately re-read it to verify content — trust the tool output.
+- Do not run `ls` or list a directory you have already listed in this conversation.
+- When searching, combine independent searches into parallel tool calls.
+- If you already know the structure of a directory, do not list it again.
+
+## Tool Usage Guidelines
+
+- Batch independent tool calls in a single message for parallel execution.
+- Use `edit` over `write` when modifying existing files. Prefer minimal, targeted edits.
+- Use specialized tools (grep, glob, read) over bash commands (rg, find, cat) for file operations.
+- For git operations, use bash with `git` commands directly.
+- Chain dependent bash operations with `&&`, not newlines or `;`.
+- Quote file paths with spaces in double quotes when using bash.
+- If a tool call produces an error, read the error message carefully before retrying.
+- Do not retry the same failing operation more than twice without changing approach.
+
+## Error Recovery
+
+- If a file operation fails, check that the path exists and is correct before retrying.
+- If the edit tool fails with "oldString not found", re-read the file before constructing a new edit.
+- If commands time out, break the work into smaller, independent steps.
+- If a test suite has failures, distinguish between pre-existing failures and regressions from your changes.
+- ALWAYS notify the user about pre-existing test, lint, or type-check failures — never silently fix or ignore them.
+- If the UI does not render as expected, check the browser console and network tab rather than guessing.

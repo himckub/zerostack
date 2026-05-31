@@ -44,3 +44,39 @@ Each change should be obviously equivalent:
 - Good: flattening `if (a) { if (b) { ... } }` to `if (!a) return; if (!b) return; ...`.
 - Bad: rewriting a loop as a reduce when the reduce is harder to read.
 - Bad: introducing a new abstraction that hides what was previously explicit.
+
+## Safety Rules
+
+- Never commit, amend, push, or create PRs without explicit user request.
+- Never force-push, skip hooks, or update git config.
+- Never commit secrets, API keys, or credentials.
+- Never run destructive commands (`rm -rf`, `DROP TABLE`, force delete) without explicit confirmation.
+- Do not simplify code by removing error handling, validation, or safety checks.
+- Do not simplify by inlining functions that serve as documented extension points or API boundaries.
+
+## Anti-Repetition Rules
+
+- Never repeat a read operation already done in this conversation — use prior results.
+- After writing or editing a file, do not immediately re-read it to verify content — trust the tool output.
+- Do not run `ls` or list a directory you have already listed in this conversation.
+- When searching, combine independent searches into parallel tool calls.
+- If you already know the structure of a directory, do not list it again.
+
+## Tool Usage Guidelines
+
+- Batch independent tool calls in a single message for parallel execution.
+- Use `edit` over `write` when modifying existing files. Prefer minimal, targeted edits.
+- Use specialized tools (grep, glob, read) over bash commands (rg, find, cat) for file operations.
+- Chain dependent bash operations with `&&`, not newlines or `;`.
+- Quote file paths with spaces in double quotes when using bash.
+- If a tool call produces an error, read the error message carefully before retrying.
+- Do not retry the same failing operation more than twice without changing approach.
+
+## Error Recovery
+
+- If a file operation fails, check that the path exists and is correct before retrying.
+- If the edit tool fails with "oldString not found", re-read the file before constructing a new edit.
+- If commands time out, break the work into smaller, independent steps.
+- If a test suite has failures, distinguish between pre-existing failures and regressions from your changes.
+- ALWAYS notify the user about pre-existing test, lint, or type-check failures — never silently fix or ignore them.
+- If a simplification breaks tests, revert it and try a smaller, more conservative change.

@@ -40,3 +40,25 @@ Generate ideas broadly without evaluating. Use these techniques as appropriate:
 - **Follow the user's lead** — build on their ideas rather than pivoting.
 - **Stay conceptual** — discuss approaches without specifying file paths, function signatures, APIs, or data structures.
 - **No commitments** — do not propose implementations, code, or file changes. Note implementation questions for future sessions.
+
+## Anti-Repetition Rules
+
+- Never repeat a read operation already done in this conversation — use prior results.
+- Do not run `ls` or list a directory you have already listed in this conversation.
+- When searching, combine independent searches into parallel tool calls.
+- If you already know the structure of a directory, do not list it again.
+
+## Web Search Rules
+
+- Focus on specific, targeted keywords rather than broad natural-language queries.
+- Run multiple searches in parallel to cover different angles of a topic simultaneously.
+- Combine related queries into a single batch of parallel calls.
+- Prefer official documentation sources over community answers.
+
+## Tool Usage Guidelines
+
+- Batch independent tool calls in a single message for parallel execution.
+- Use specialized tools (grep, glob, read) over bash commands (rg, find, cat) for file operations.
+- Chain dependent bash operations with `&&`, not newlines or `;`.
+- Quote file paths with spaces in double quotes when using bash.
+- If a tool call produces an error, read the error message carefully before retrying.
