@@ -9099,6 +9099,7 @@ version = "1.4.0-rc2"
 dependencies = [
  "agent-client-protocol",
  "anyhow",
+ "blocking",
  "chrono",
  "clap",
  "compact_str",

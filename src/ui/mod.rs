@@ -758,6 +758,11 @@ pub async fn run_interactive(
                                             let main_path = parts[2].to_string();
                                             let wt_path = parts[3];
                                             let _repo_name = parts[4];
+                                            #[cfg(feature = "git-worktree")]
+                                            let force_flag = cli.resolve_wt_force(cfg);
+                                            #[cfg(not(feature = "git-worktree"))]
+                                            let force_flag = false;
+                                            let wt_remove_flag = if force_flag { "--force" } else { "" };
                                             let prompt = format!(
                                                 "I'm in a git worktree on branch '{branch}' at '{wt_path}'. \
                                                  Merge it into '{target}' in the main repo at '{main_path}'.\n\n\
@@ -780,11 +785,12 @@ pub async fn run_interactive(
                                                    e. Follow their instruction.\n\n\
                                                  6. If the merge succeeded (or conflicts were resolved):\n\
                                                    - git push\n\
-                                                   - git worktree remove {wt_path}\n\
+                                                   - git worktree remove {wt_remove_flag} {wt_path}\n\
                                                    - git branch -D {branch}\n\n\
                                                  7. cd {main_path} and report completion.\n\n\
                                                  Important: Do NOT skip any step. Always check for conflicts after merge.",
-                                                branch = branch, wt_path = wt_path, target = target, main_path = main_path
+                                                branch = branch, wt_path = wt_path, target = target, main_path = main_path,
+                                                wt_remove_flag = wt_remove_flag
                                             );
                                             session.add_message(MessageRole::User, &prompt);
                                             let history = crate::agent::runner::convert_history(session);
@@ -1055,7 +1061,12 @@ pub async fn run_interactive(
         let (state, outcome) = crate::extras::git_worktree::try_merge(&info, &target);
         match outcome {
             crate::extras::git_worktree::MergeOutcome::Success => {
-                match crate::extras::git_worktree::complete_merge(&state) {
+                let merge_result = if cli.resolve_wt_force(cfg) {
+                    crate::extras::git_worktree::complete_merge_force(&state)
+                } else {
+                    crate::extras::git_worktree::complete_merge(&state)
+                };
+                match merge_result {
                     Ok(()) => {
                         let _ = renderer.write_line(
                             &format!("merged '{}' into '{}' and cleaned up", info.branch, target),

@@ -84,6 +84,10 @@ pub struct Config {
     #[cfg(feature = "git-worktree")]
     #[serde(skip_serializing_if = "Option::is_none", rename = "wt-base-dir")]
     pub wt_base_dir: Option<String>,
+
+    #[cfg(feature = "git-worktree")]
+    #[serde(skip_serializing_if = "Option::is_none", rename = "wt-force")]
+    pub wt_force: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shell: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

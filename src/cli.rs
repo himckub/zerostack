@@ -4,7 +4,7 @@ use compact_str::CompactString;
 use crate::config;
 use crate::config::types::EditSystem;
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Default)]
 #[command(name = "zerostack", version, about = "Minimal coding agent")]
 pub struct Cli {
     #[arg(short = 'p', long = "print", help = "Print response and exit")]
@@ -179,6 +179,13 @@ pub struct Cli {
     )]
     pub wt_base_dir: Option<String>,
 
+    #[cfg(feature = "git-worktree")]
+    #[arg(
+        long = "wt-force",
+        help = "Force worktree remove and branch delete even if dirty"
+    )]
+    pub wt_force: bool,
+
     #[arg(help = "Prompt message(s)")]
     pub message: Vec<String>,
 }
@@ -271,5 +278,10 @@ impl Cli {
             .clone()
             .or_else(|| cfg.wt_base_dir.clone())
             .map(std::path::PathBuf::from)
+    }
+
+    #[cfg(feature = "git-worktree")]
+    pub fn resolve_wt_force(&self, cfg: &config::Config) -> bool {
+        self.wt_force || cfg.wt_force.unwrap_or(false)
     }
 }

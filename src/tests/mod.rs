@@ -1,3 +1,5 @@
+#[cfg(all(test, feature = "acp"))]
+mod acp_tests;
 #[cfg(all(test, feature = "archmd"))]
 mod archmd_tests;
 #[cfg(test)]
@@ -14,3 +16,5 @@ mod memory_tests;
 mod picker_tests;
 #[cfg(all(test, feature = "subagents"))]
 mod subagents_tests;
+#[cfg(all(test, feature = "git-worktree"))]
+mod worktree_tests;

@@ -1,14 +1,24 @@
 use serde::{Deserialize, Serialize};
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
+#[serde(tag = "type", rename_all = "lowercase")]
 pub enum AcpServerConfig {
+    #[serde(rename = "tcp")]
     Tcp {
         host: String,
         port: u16,
         #[serde(default)]
         api_key: Option<String>,
     },
+    #[serde(rename = "stdio")]
     Stdio,
+}
+
+impl AcpServerConfig {
+    pub fn transport_type(&self) -> &str {
+        match self {
+            AcpServerConfig::Tcp { .. } => "tcp",
+            AcpServerConfig::Stdio => "stdio",
+        }
+    }
 }
