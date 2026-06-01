@@ -589,6 +589,7 @@ impl Tool for EditTool {
         };
 
         tokio::fs::write(&path, &output).await?;
+        crate::agent::tools::untrack_read_path(&path);
 
         let mut result = format!("Applied {} edit(s) to {}", edit_count, path);
         for note in &notes {

@@ -300,6 +300,7 @@ async fn main() -> anyhow::Result<()> {
     .with_shell(&cli.resolve_shell(&cfg));
     let edit_system = cli.resolve_edit_system(&cfg);
     tools::set_edit_system(edit_system);
+    tools::set_deny_repeated_reads(cfg.deny_repeated_reads.unwrap_or(true));
     let (permission, ask_tx, ask_rx) = build_permission_checker(&cli, &cfg);
 
     if let Some(perm) = &permission {

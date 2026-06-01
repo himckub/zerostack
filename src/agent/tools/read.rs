@@ -75,6 +75,13 @@ impl Tool for ReadTool {
         let path = crate::fs::expand_tilde(&args.path);
         let coaching = check_perm_path(&self.permission, &self.ask_tx, "read", &path).await?;
 
+        let offset = args.offset.unwrap_or(1).saturating_sub(1);
+        let limit = args.limit.unwrap_or(2000);
+
+        if let Some(msg) = crate::agent::tools::track_read(&path, offset, limit) {
+            return Err(ToolError::Msg(msg));
+        }
+
         let metadata = tokio::fs::metadata(&path).await?;
         let file_size = metadata.len();
         if file_size > self.max_text_file_size {
@@ -86,8 +93,6 @@ impl Tool for ReadTool {
         let content = tokio::fs::read_to_string(&path).await?;
         let total_lines = content.lines().count();
 
-        let offset = args.offset.unwrap_or(1).saturating_sub(1);
-        let limit = args.limit.unwrap_or(2000);
         let end = (offset + limit).min(total_lines);
 
         let es = edit_system();

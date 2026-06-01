@@ -113,6 +113,8 @@ pub struct Config {
     #[cfg(feature = "subagents")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub task_max_turns: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deny_repeated_reads: Option<bool>,
     #[cfg(feature = "subagents")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub task_enabled: Option<bool>,

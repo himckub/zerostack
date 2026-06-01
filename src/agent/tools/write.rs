@@ -71,6 +71,7 @@ impl Tool for WriteTool {
             )));
         }
         tokio::fs::write(path, &args.content).await?;
+        crate::agent::tools::untrack_read_path(&expanded);
         let mut result = format!("Written {} bytes to {}", bytes, expanded);
         if let Some(msg) = coaching {
             result = format!("{}\n\n{}", msg, result);

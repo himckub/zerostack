@@ -37,6 +37,7 @@ Example (JSON):
   "reserve_tokens": 16384,
   "keep_recent_tokens": 20000,
   "compact_enabled": true,
+  "deny_repeated_reads": false,
   "default_prompt": "code",
   "default_permission_mode": "standard",
   "permission-modes": ["guarded", "standard", "yolo"],
@@ -148,6 +149,7 @@ Accepted top-level keys:
 | `reserve_tokens`          | integer | Tokens to reserve before compaction is triggered. Default: `16384`.                                                                                                         |
 | `keep_recent_tokens`      | integer | Approximate recent-token budget kept verbatim during compaction. Default: `20000`.                                                                                          |
 | `max_text_file_size`      | integer | Maximum allowed file size in bytes for read/write tool operations. Default: `1048576` (1 MB).                                                                               |
+| `deny_repeated_reads`     | boolean | Block repeated reads of the same file section within a session until the file is edited or written. Default: `true`. Set to `false` to allow re-reading.                     |
 | `compact_enabled`         | boolean | Enable automatic conversation compaction. Default: `true`.                                                                                                                  |
 | `always_show_welcome`     | boolean | Always show the welcome banner on startup, bypassing the one-shot marker file. Default: `false`.                                                                               |
 | `edit_system`             | string  | Edit system mode: `"similarity"` (SEARCH/REPLACE with fuzzy matching, default) or `"hashedit"` (CRC-32 tag-based CAS edits). See Edit System Modes below.                     |
