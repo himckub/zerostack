@@ -121,7 +121,7 @@ pub fn parse_prompt_mode(content: &str) -> (Option<&str>, &str) {
 /// These are appended to the end of each relevant tool's rules, so they
 /// take precedence over user-configured allow/ask entries.
 pub fn default_deny_regex_rules() -> Vec<(/* tool */ &'static str, /* regex */ &'static str)> {
-    vec![("bash", r"^rm\s+.")]
+    vec![("bash", r"^rm\s+.*\*")]
 }
 
 pub fn default_bash_rules() -> Vec<(&'static str, Action)> {

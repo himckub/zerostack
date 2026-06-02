@@ -135,6 +135,13 @@ impl PermissionChecker {
             rules.insert("bash".to_string(), defaults);
         }
 
+        for (tool, regex) in crate::permission::default_deny_regex_rules() {
+            rules
+                .entry(tool.to_string())
+                .or_default()
+                .push((Pattern::new_regex(regex), Action::Deny));
+        }
+
         let ext_dir_rules = configs
             .glob
             .external_directory
