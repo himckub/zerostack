@@ -328,13 +328,6 @@ pub async fn run_interactive(
         input.set_provider_names(providers);
     }
     input.load_global_history();
-    // pre-warm the current provider's live models into the picker (best-effort)
-    {
-        let provider = session.provider.to_string();
-        let is_custom = cfg.custom_providers_map().contains_key(&provider);
-        let ids = crate::ui::slash::warm_model_cache(&provider, is_custom, &client, cli, cfg).await;
-        input.set_live_model_names(ids);
-    }
     let mut is_running = false;
     let mut agent_rx: Option<mpsc::Receiver<AgentEvent>> = None;
     // Abort handle for the single in-flight main run. Enforces "at most one main
@@ -406,6 +399,15 @@ pub async fn run_interactive(
         btw_total_in,
         btw_total_out,
     )?;
+
+    // pre-warm the current provider's live models into the picker (best-effort)
+    // Moved after first paint so the TUI is visible while the network call completes.
+    {
+        let provider = session.provider.to_string();
+        let is_custom = cfg.custom_providers_map().contains_key(&provider);
+        let ids = crate::ui::slash::warm_model_cache(&provider, is_custom, &client, cli, cfg).await;
+        input.set_live_model_names(ids);
+    }
 
     #[cfg(feature = "git-worktree")]
     if let Some(name) = &cli.worktree {

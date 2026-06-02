@@ -92,17 +92,15 @@ impl ContextFiles {
 pub fn load(no_context_files: bool) -> ContextFiles {
     let _ = prompts::ensure_global();
     let _ = themes::ensure_global();
-    let agents = if no_context_files {
-        None
+    let (agents, arch_candidate) = if no_context_files {
+        (None, None)
     } else {
-        load_agents()
+        walk_context_files()
     };
     #[cfg(feature = "archmd")]
-    let architecture = if no_context_files {
-        None
-    } else {
-        load_architecture()
-    };
+    let architecture = arch_candidate;
+    #[cfg(not(feature = "archmd"))]
+    let _ = arch_candidate;
     let prompt_map = prompts::load();
     let theme_map = themes::load();
     let theme_name = crate::session::storage::load_theme_name();
@@ -131,50 +129,28 @@ fn load_file(path: &PathBuf) -> Option<String> {
     }
 }
 
-#[cfg(feature = "archmd")]
-pub(crate) fn load_architecture() -> Option<String> {
-    let mut parts: SmallVec<[String; 4]> = SmallVec::new();
+/// Walks from CWD up to root once, collecting AGENTS.md, CLAUDE.md, and
+/// ARCHITECTURE.md files. This avoids the duplicate traversal that the
+/// older separate load_agents / load_architecture performed.
+fn walk_context_files() -> (Option<String>, Option<String>) {
+    let mut agent_parts: SmallVec<[String; 4]> = SmallVec::new();
+    let mut arch_parts: SmallVec<[String; 4]> = SmallVec::new();
 
-    let global = crate::session::storage::architecture_path();
-    if let Some(content) = load_file(&global)
+    let global_agents = storage::agents_path();
+    if let Some(content) = load_file(&global_agents)
         && !content.trim().is_empty()
     {
-        parts.push(format!("# Global ARCHITECTURE.md\n{}", content));
+        agent_parts.push(format!("# Global AGENTS.md\n{}", content));
     }
 
-    let cwd = std::env::current_dir().ok();
-    if let Some(cwd) = cwd {
-        let mut current = Some(cwd.as_path());
-        while let Some(dir) = current {
-            let path = dir.join("ARCHITECTURE.md");
-            if let Some(content) = load_file(&path)
-                && !content.trim().is_empty()
-            {
-                parts.push(format!(
-                    "# ARCHITECTURE.md ({})\n{}",
-                    dir.display(),
-                    content
-                ));
-            }
-            current = dir.parent();
+    #[cfg(feature = "archmd")]
+    {
+        let global_arch = storage::architecture_path();
+        if let Some(content) = load_file(&global_arch)
+            && !content.trim().is_empty()
+        {
+            arch_parts.push(format!("# Global ARCHITECTURE.md\n{}", content));
         }
-    }
-
-    if parts.is_empty() {
-        None
-    } else {
-        Some(parts.join("\n\n"))
-    }
-}
-
-fn load_agents() -> Option<String> {
-    let mut parts: SmallVec<[String; 4]> = SmallVec::new();
-
-    let global = storage::agents_path();
-    if let Some(content) = load_file(&global)
-        && !content.trim().is_empty()
-    {
-        parts.push(format!("# Global AGENTS.md\n{}", content));
     }
 
     let cwd = std::env::current_dir().ok();
@@ -186,16 +162,44 @@ fn load_agents() -> Option<String> {
                 if let Some(content) = load_file(&path)
                     && !content.trim().is_empty()
                 {
-                    parts.push(format!("# {} ({})\n{}", name, dir.display(), content));
+                    agent_parts.push(format!("# {} ({})\n{}", name, dir.display(), content));
+                }
+            }
+            #[cfg(feature = "archmd")]
+            {
+                let path = dir.join("ARCHITECTURE.md");
+                if let Some(content) = load_file(&path)
+                    && !content.trim().is_empty()
+                {
+                    arch_parts.push(format!(
+                        "# ARCHITECTURE.md ({})\n{}",
+                        dir.display(),
+                        content
+                    ));
                 }
             }
             current = dir.parent();
         }
     }
 
-    if parts.is_empty() {
+    let agents = if agent_parts.is_empty() {
         None
     } else {
-        Some(parts.join("\n\n"))
-    }
+        Some(agent_parts.join("\n\n"))
+    };
+    let architecture = if arch_parts.is_empty() {
+        None
+    } else {
+        Some(arch_parts.join("\n\n"))
+    };
+    (agents, architecture)
+}
+
+fn load_agents() -> Option<String> {
+    walk_context_files().0
+}
+
+#[cfg(feature = "archmd")]
+pub(crate) fn load_architecture() -> Option<String> {
+    walk_context_files().1
 }
